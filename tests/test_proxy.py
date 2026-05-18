@@ -16,4 +16,9 @@ def test_proxy_upstream_failure(respx_mock):
     assert response.status_code == 502
     assert response.json() == {"detail": "Bad gateway"}
 
+def test_proxy_timeout_failure(respx_mock):
+    respx_mock.get("https://httpbin.org/get").mock(side_effect=httpx.TimeoutException("Something went wrong"))
+    response = client.get("/proxy")
+    assert response.status_code == 504
+    assert response.json() == {"detail": "Gateway timeout"}
 
