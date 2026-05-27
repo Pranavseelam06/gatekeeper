@@ -3,6 +3,11 @@ from dotenv import load_dotenv
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from fastapi.testclient import TestClient
+from app.main import app
+from app.database import get_session
+from app.models import APIKey
+
 
 
 load_dotenv()
@@ -11,6 +16,9 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 if not TEST_DATABASE_URL:
     raise RuntimeError("TEST_DATABASE_URL is not set in environment variables")
 engine = create_engine(TEST_DATABASE_URL)
+
+
+
 
 
 @pytest.fixture
@@ -27,3 +35,17 @@ def db_session():
     session.close()
     transaction.rollback()
     connection.close()
+
+@pytest.fixture
+def client(db_session):
+    api_key = APIKey(key="test-valid-key", name="proxy test")
+    db_session.add(api_key)
+    db_session.commit()
+
+    def override_get_session():
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_get_session
+
+    yield TestClient(app)
+    app.dependency_overrides.clear()
