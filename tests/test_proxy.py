@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from app.rate_limit_dependency import RATE_LIMIT_CAPACITY
 import httpx
 
 def test_proxy_success(respx_mock, client: TestClient):
@@ -28,3 +29,35 @@ def test_proxy_invalid_api_key_returns_401(client):
     response = client.get("/proxy", headers={"X-API-Key": "test-invalid-key"})
     assert response.status_code == 401
     assert response.json() == {"detail": "Unauthorized"}
+
+def test_proxy_rate_limit_returns_429_when_exhausted(client, respx_mock, monkeypatch):
+    monkeypatch.setattr("app.rate_limiter.time.monotonic", lambda: 0)
+    respx_mock.get("https://httpbin.org/get").mock(return_value=httpx.Response(200, json={"ok": True}))
+    for _ in range (RATE_LIMIT_CAPACITY):
+        response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+    response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
+    assert response.status_code == 429
+    assert response.json() == {"detail": "Rate limit exceeded"}
+
+def test_proxy_rate_limit_recovers_after_refill(client, respx_mock, monkeypatch):
+    monkeypatch.setattr("app.rate_limiter.time.monotonic", lambda: 0)
+    respx_mock.get("https://httpbin.org/get").mock(return_value=httpx.Response(200, json={"ok": True}))
+    for _ in range (RATE_LIMIT_CAPACITY):
+        response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+    monkeypatch.setattr("app.rate_limiter.time.monotonic", lambda: 1)
+    response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
+    assert response.status_code == 429
+    assert response.json() == {"detail": "Rate limit exceeded"}
+    
+
+
+
+
+

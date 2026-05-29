@@ -49,3 +49,4 @@ def client(db_session):
 
     yield TestClient(app)
     app.dependency_overrides.clear()
+    app.state.buckets.clear()
