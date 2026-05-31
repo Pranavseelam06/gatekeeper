@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-from app.rate_limit_dependency import RATE_LIMIT_CAPACITY
 import httpx
 
 def test_proxy_success(respx_mock, client: TestClient):
@@ -33,7 +32,7 @@ def test_proxy_invalid_api_key_returns_401(client):
 def test_proxy_rate_limit_returns_429_when_exhausted(client, respx_mock, monkeypatch):
     monkeypatch.setattr("app.rate_limiter.time.monotonic", lambda: 0)
     respx_mock.get("https://httpbin.org/get").mock(return_value=httpx.Response(200, json={"ok": True}))
-    for _ in range (RATE_LIMIT_CAPACITY):
+    for _ in range (10):
         response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
         assert response.status_code == 200
         assert response.json() == {"ok": True}
@@ -44,7 +43,7 @@ def test_proxy_rate_limit_returns_429_when_exhausted(client, respx_mock, monkeyp
 def test_proxy_rate_limit_recovers_after_refill(client, respx_mock, monkeypatch):
     monkeypatch.setattr("app.rate_limiter.time.monotonic", lambda: 0)
     respx_mock.get("https://httpbin.org/get").mock(return_value=httpx.Response(200, json={"ok": True}))
-    for _ in range (RATE_LIMIT_CAPACITY):
+    for _ in range (10):
         response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
         assert response.status_code == 200
         assert response.json() == {"ok": True}
@@ -56,7 +55,23 @@ def test_proxy_rate_limit_recovers_after_refill(client, respx_mock, monkeypatch)
     assert response.status_code == 429
     assert response.json() == {"detail": "Rate limit exceeded"}
     
-
+def test_proxy_rate_limit_differs_per_api_key(client, respx_mock, monkeypatch):
+    monkeypatch.setattr("app.rate_limiter.time.monotonic", lambda: 0)
+    respx_mock.get("https://httpbin.org/get").mock(return_value=httpx.Response(200, json={"ok": True}))
+    for _ in range (10):
+        response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+    response = client.get("/proxy", headers={"X-API-Key": "test-valid-key"})
+    assert response.status_code == 429
+    assert response.json() == {"detail": "Rate limit exceeded"}
+    for _ in range (2):
+        response = client.get("/proxy", headers={"X-API-Key": "test-limited-key"})
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+    response = client.get("/proxy", headers={"X-API-Key": "test-limited-key"})
+    assert response.status_code == 429
+    assert response.json() == {"detail": "Rate limit exceeded"}
 
 
 

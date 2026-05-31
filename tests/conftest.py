@@ -39,7 +39,9 @@ def db_session():
 @pytest.fixture
 def client(db_session):
     api_key = APIKey(key="test-valid-key", name="proxy test")
+    api_key_two = APIKey(key="test-limited-key", name="proxy test two", rate_limit_capacity=2)
     db_session.add(api_key)
+    db_session.add(api_key_two)
     db_session.commit()
 
     def override_get_session():

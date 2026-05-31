@@ -3,8 +3,7 @@ from app.dependencies import require_api_key
 from app.models import APIKey
 from app.rate_limiter import TokenBucket
 
-RATE_LIMIT_CAPACITY = 10
-RATE_LIMIT_REFILL_RATE = 1.0
+
 
 def enforce_rate_limit(
     request: Request,
@@ -13,8 +12,8 @@ def enforce_rate_limit(
     buckets = request.app.state.buckets
     if api_key.key not in buckets:
         buckets[api_key.key] = TokenBucket(
-            capacity=RATE_LIMIT_CAPACITY, 
-            refill_rate=RATE_LIMIT_REFILL_RATE
+            capacity=api_key.rate_limit_capacity,
+            refill_rate=api_key.rate_limit_refill_rate,
         )
     bucket = buckets[api_key.key]
     if not bucket.consume():
