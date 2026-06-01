@@ -15,4 +15,14 @@ class APIKey(Base):
     def __repr__(self):
         return f"<APIKey(id={self.id}, key='{self.key}', name='{self.name}', created_at='{self.created_at}')>"
 
+class RequestLog(Base):
+    __tablename__ = "request_logs"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    api_key_value: Mapped[str] = mapped_column(nullable=False, index=True)
+    upstream_url: Mapped[str] = mapped_column(nullable=False)
+    status_code: Mapped[int] = mapped_column(nullable=False, index=True)
+    latency_ms: Mapped[int] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    def __repr__(self):
+        return f"<RequestLog(id={self.id}, api_key_value={self.api_key_value}, upstream_url={self.upstream_url}, status_code={self.status_code}, latency_ms={self.latency_ms}, created_at='{self.created_at}')>"
     

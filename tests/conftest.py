@@ -6,7 +6,9 @@ from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import get_session
-from app.models import APIKey
+from app.models import APIKey, RequestLog
+from app.database import SessionLocal
+
 
 
 
@@ -49,6 +51,16 @@ def client(db_session):
 
     app.dependency_overrides[get_session] = override_get_session
 
+    test_session_factory = sessionmaker(bind=engine)
+    app.state.session_factory = test_session_factory
+    
     yield TestClient(app)
     app.dependency_overrides.clear()
     app.state.buckets.clear()
+
+    with test_session_factory() as session:
+        session.query(RequestLog).delete()
+        session.commit()
+
+    # Restore production session factory
+    app.state.session_factory = SessionLocal
