@@ -1,26 +1,90 @@
+````md
 # Gatekeeper
 
 [![CI](https://github.com/Pranavseelam06/gatekeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavseelam06/gatekeeper/actions/workflows/ci.yml)
 
 A production-style API gateway in Python/FastAPI with API key authentication, per-key rate limiting, and structured request logging.
 
+**Live URL:** https://gatekeeper-ccgq.onrender.com/docs
+
 ## Features
 
-- **API key authentication** — `X-API-Key` header validated against database; returns 401 for missing or invalid keys
-- **Per-key rate limiting** — token bucket algorithm with configurable capacity and refill rate stored per API key in the database
-- **Async proxy** — forwards authenticated requests to upstream services with explicit timeout handling (502 for connection errors, 504 for timeouts)
-- **Structured request logging** — every `/proxy` request recorded to a `request_logs` table for observability and auditing
-- **Versioned schema** — Alembic migrations with separate routing for production and test databases
+- **API Key Authentication** — Validates incoming requests via the `X-API-Key` header against a cloud-hosted datastore; handles invalid credentials with immediate `401 Unauthorized` responses.
+- **Per-Key Token-Bucket Rate Limiting** — Enforces traffic limits using an asynchronous token-bucket algorithm configured through database parameters (`rate_limit_capacity`, `rate_limit_refill_rate`).
+- **Resilient Async Proxy** — Forwards authenticated traffic to upstream services with timeout protection and proper error handling.
+- **Structured Request Logging** — Captures request metadata including route, status code, latency, and client IP for observability and auditing.
+- **Environment Isolation** — Supports Local, CI, and Production environments through environment-variable based configuration.
 
-## Stack
+## Architecture & Stack
 
-Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL 16, pytest
+- **Framework:** Python 3.12, FastAPI, Uvicorn
+- **ORM:** SQLAlchemy 2.0
+- **Migrations:** Alembic
+- **Database:** Neon PostgreSQL
+- **Deployment:** Docker, Render
+- **Testing:** Pytest, GitHub Actions
 
 ## Endpoints
 
-- `GET /health` — liveness check
-- `GET /proxy` — authenticated, rate-limited, logged proxy to upstream (currently `https://httpbin.org/get`)
+| Method | Endpoint | Description |
+|----------|----------|-------------|
+| GET | `/` | Health check |
+| GET | `/docs` | Swagger UI documentation |
+| GET | `/proxy` | Authenticated, rate-limited proxy endpoint |
 
-## Local development
+---
+
+## Infrastructure Deployment
+
+```text
+[ Local Client / curl ] --- (HTTPS) ---> [ Render Container ]
+                                                |
+                                         (Auth & Logging)
+                                                v
+                                     [ Neon PostgreSQL ]
+````
+
+### Production Configuration
+
+* `DATABASE_URL` — PostgreSQL connection string
+* `PORT` — Container port (default: `8000`)
+
+---
+
+## Local Development
+
+### 1. Configure Environment Variables
+
+Create a `.env` file:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/gatekeeper"
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/gatekeeper_test"
+```
+
+### 2. Start PostgreSQL
 
 ```bash
+docker-compose up -d
+```
+
+### 3. Apply Migrations
+
+```bash
+alembic upgrade head
+```
+
+### 4. Run the Application
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 5. Run Tests
+
+```bash
+pytest
+```
+
+```
+```
