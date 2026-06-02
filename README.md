@@ -1,4 +1,3 @@
-````md
 # Gatekeeper
 
 [![CI](https://github.com/Pranavseelam06/gatekeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavseelam06/gatekeeper/actions/workflows/ci.yml)
@@ -9,28 +8,28 @@ A production-style API gateway in Python/FastAPI with API key authentication, pe
 
 ## Features
 
-- **API Key Authentication** — Validates incoming requests via the `X-API-Key` header against a cloud-hosted datastore; handles invalid credentials with immediate `401 Unauthorized` responses.
-- **Per-Key Token-Bucket Rate Limiting** — Enforces traffic limits using an asynchronous token-bucket algorithm configured through database parameters (`rate_limit_capacity`, `rate_limit_refill_rate`).
-- **Resilient Async Proxy** — Forwards authenticated traffic to upstream services with timeout protection and proper error handling.
-- **Structured Request Logging** — Captures request metadata including route, status code, latency, and client IP for observability and auditing.
-- **Environment Isolation** — Supports Local, CI, and Production environments through environment-variable based configuration.
+* **API Key Authentication** — Validates incoming requests via the `X-API-Key` header against a cloud-hosted datastore and returns `401 Unauthorized` for invalid credentials.
+* **Per-Key Token-Bucket Rate Limiting** — Enforces traffic limits using configurable token-bucket parameters stored in the database.
+* **Resilient Async Proxy** — Forwards authenticated traffic to upstream services with timeout protection and proper error handling.
+* **Structured Request Logging** — Captures request metadata including route, status code, latency, and client IP for observability and auditing.
+* **Environment Isolation** — Supports Local, CI, and Production environments through environment-variable based configuration.
 
 ## Architecture & Stack
 
-- **Framework:** Python 3.12, FastAPI, Uvicorn
-- **ORM:** SQLAlchemy 2.0
-- **Migrations:** Alembic
-- **Database:** Neon PostgreSQL
-- **Deployment:** Docker, Render
-- **Testing:** Pytest, GitHub Actions
+* **Framework:** Python 3.12, FastAPI, Uvicorn
+* **ORM:** SQLAlchemy 2.0
+* **Migrations:** Alembic
+* **Database:** Neon PostgreSQL
+* **Deployment:** Docker, Render
+* **Testing:** Pytest, GitHub Actions
 
 ## Endpoints
 
-| Method | Endpoint | Description |
-|----------|----------|-------------|
-| GET | `/` | Health check |
-| GET | `/docs` | Swagger UI documentation |
-| GET | `/proxy` | Authenticated, rate-limited proxy endpoint |
+| Method | Endpoint | Description                                |
+| ------ | -------- | ------------------------------------------ |
+| GET    | `/`      | Health check                               |
+| GET    | `/docs`  | Swagger UI documentation                   |
+| GET    | `/proxy` | Authenticated, rate-limited proxy endpoint |
 
 ---
 
@@ -42,7 +41,7 @@ A production-style API gateway in Python/FastAPI with API key authentication, pe
                                          (Auth & Logging)
                                                 v
                                      [ Neon PostgreSQL ]
-````
+```
 
 ### Production Configuration
 
@@ -84,7 +83,4 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 pytest
-```
-
-```
 ```
