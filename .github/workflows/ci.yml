@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gatekeeper_app
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: gatekeeper
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://gatekeeper_app:testpassword@localhost:5432/gatekeeper
+      TEST_DATABASE_URL: postgresql://gatekeeper_app:testpassword@localhost:5432/gatekeeper_test
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create test database
+        env:
+          PGPASSWORD: testpassword
+        run: |
+          psql -h localhost -U gatekeeper_app -d gatekeeper -c "CREATE DATABASE gatekeeper_test;"
+
+      - name: Run migrations on production DB
+        run: alembic upgrade head
+
+      - name: Run migrations on test DB
+        run: alembic -x test=true upgrade head
+
+      - name: Run pytest
+        run: pytest -q
