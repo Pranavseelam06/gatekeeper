@@ -6,8 +6,15 @@ import time
 from fastapi import Request
 from app.database import SessionLocal
 from app.models import RequestLog
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.http_client = httpx.AsyncClient(timeout=5.0)
+    yield
+    await app.state.http_client.aclose()
+
+app = FastAPI(lifespan=lifespan)
 app.state.buckets = {}
 app.state.session_factory = SessionLocal
 
@@ -16,15 +23,15 @@ def health():
     return {"status": "ok"}
 
 @app.get("/proxy")
-async def proxy(_: APIKey = Depends(enforce_rate_limit)): 
+async def proxy(request: Request, _: APIKey = Depends(enforce_rate_limit)):
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.get('https://httpbin.org/get')
-            return r.json()
+        r = await request.app.state.http_client.get("https://httpbin.org/get")
+        return r.json()
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Gateway timeout")
     except httpx.RequestError:
         raise HTTPException(status_code=502, detail="Bad gateway")
+
 
 @app.middleware("http")
 async def log_proxy_requests(request: Request, call_next):
