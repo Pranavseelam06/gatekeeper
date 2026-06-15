@@ -1,0 +1,14 @@
+Performance Testing Notes Jun 14 2026
+
+Used k6 to benchmark gateway endpoints and identify bottlenecks in upstream request forwarding and database connection pooling.
+
+Improvements:
+- Reused a shared async HTTP client for upstream requests.
+- Tuned database connection pooling for concurrent authenticated traffic.
+- Validated local full-path performance under concurrent load.
+
+Final local benchmark:
+- 50 virtual users
+- ~86 requests/sec
+- 99.5% successful responses
+- p95 latency near 1.1s
