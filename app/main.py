@@ -7,6 +7,7 @@ from fastapi import Request
 from app.database import SessionLocal
 from app.models import RequestLog
 from contextlib import asynccontextmanager
+from app.redis_client import redis_client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
