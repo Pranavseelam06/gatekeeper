@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 from dotenv import load_dotenv
 import pytest
 from sqlalchemy import create_engine
@@ -22,6 +23,12 @@ engine = create_engine(TEST_DATABASE_URL)
 
 
 
+
+@pytest.fixture(autouse=True)
+def mock_redis_cache():
+    with patch("app.crud.get_cached_api_key", return_value=None), \
+         patch("app.crud.cache_api_key", return_value=None):
+        yield
 
 @pytest.fixture
 def db_session():
@@ -53,8 +60,9 @@ def client(db_session):
 
     test_session_factory = sessionmaker(bind=engine)
     app.state.session_factory = test_session_factory
-    
-    yield TestClient(app)
+
+    with TestClient(app) as test_client:
+        yield test_client
     app.dependency_overrides.clear()
     app.state.buckets.clear()
 
@@ -64,3 +72,4 @@ def client(db_session):
 
     # Restore production session factory
     app.state.session_factory = SessionLocal
+
