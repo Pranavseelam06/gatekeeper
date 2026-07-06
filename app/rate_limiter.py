@@ -1,3 +1,4 @@
+import threading
 import time
 
 class TokenBucket:
@@ -12,20 +13,22 @@ class TokenBucket:
         self.capacity = capacity
         self.last_refill = time.monotonic()
         self.refill_rate = refill_rate
+        self._lock = threading.Lock()
 
     def consume(self) -> bool:
         #Try to consume one token. Returns True if allowed, False if bucket is empty (rate limited).
-        now = time.monotonic()
-        elapsed = now - self.last_refill
-        tokens_to_add = elapsed * self.refill_rate
-        self.tokens = min(self.capacity, self.tokens + tokens_to_add)
-        self.last_refill = now
+        with self._lock:
+            now = time.monotonic()
+            elapsed = now - self.last_refill
+            tokens_to_add = elapsed * self.refill_rate
+            self.tokens = min(self.capacity, self.tokens + tokens_to_add)
+            self.last_refill = now
 
-        if self.tokens >= 1:
-            self.tokens -= 1
-            return True
-        else:
-            return False
+            if self.tokens >= 1:
+                self.tokens -= 1
+                return True
+            else:
+                return False
         
 
 

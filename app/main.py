@@ -3,6 +3,7 @@ from .models import APIKey
 from .rate_limit_dependency import enforce_rate_limit
 import httpx
 import time
+import threading
 from fastapi import Request
 from app.database import SessionLocal
 from app.models import RequestLog
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.state.buckets = {}
+app.state.buckets_lock = threading.Lock()
 app.state.session_factory = SessionLocal
 
 @app.get("/health")

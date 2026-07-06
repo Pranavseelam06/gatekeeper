@@ -11,13 +11,13 @@ def enforce_rate_limit(
 
     bucket_key = f"api_key:{api_key.id}"
 
-    if bucket_key not in buckets:
-        buckets[bucket_key] = TokenBucket(
-            capacity=api_key.rate_limit_capacity,
-            refill_rate=api_key.rate_limit_refill_rate,
-        )
-
-    bucket = buckets[bucket_key]
+    with request.app.state.buckets_lock:
+        if bucket_key not in buckets:
+            buckets[bucket_key] = TokenBucket(
+                capacity=api_key.rate_limit_capacity,
+                refill_rate=api_key.rate_limit_refill_rate,
+            )
+        bucket = buckets[bucket_key]
 
     if not bucket.consume():
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
